@@ -5,7 +5,7 @@
 FROM python:3.11-slim
 
 # 2. User non-root (TODO — crée appuser avec uid 1000)
-
+RUN groupadd --gid 1000 appuser && useradd --uid 1000 --gid 1000 --no-create-home appuser
 
 # 3. Working directory
 WORKDIR /home/appuser/app
@@ -19,12 +19,19 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser models/ ./models/
 
+# Créer le dossier logs avec les bons droits AVANT de switcher d'user
+RUN mkdir -p /home/appuser/app/logs && chown appuser:appuser /home/appuser/app/logs
+
+
 # 6. TODO — Passer au user appuser
+USER appuser
 
 # 7. Port exposé (documentaire)
 EXPOSE 8000
 
 # 8. TODO — Healthcheck (cf. mini-cours 02)
-
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 # 9. TODO — CMD uvicorn (en forme exec, --host 0.0.0.0, port 8000)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
