@@ -84,13 +84,19 @@ async def health() -> HealthResponse:
 
 @app.get("/info")
 async def info() -> dict:
-    """Return loaded model metadata.
+    """Return loaded model metadata."""
+    if not hasattr(app.state, "metadata") or app.state.metadata is None:
+        raise HTTPException(status_code=503, detail="Metadata not loaded")
 
-    TODO — Return at least: api_version, model_name, model_version,
-    model_created_at, metrics_holdout.
-    """
-    # TODO — Implement (cf. mini-cours 05_Versionning_modele_essentiel.md)
-    raise NotImplementedError("Implement /info endpoint")
+    meta = app.state.metadata
+    return {
+        "api_version": app.version,
+        "model_version": meta["model_version"],
+        "model_created_at": meta["created_at"],
+        "sklearn_version": meta["sklearn_version"],
+        "dataset_sha256": meta["dataset_sha256"],
+        "metrics_holdout": meta.get("metrics_holdout"),
+    }
 
 
 @app.post("/predict", response_model=Prediction, status_code=status.HTTP_200_OK)
@@ -102,5 +108,24 @@ async def predict(application: LoanApplication, request: Request) -> Prediction:
       2. Call model.predict() and model.predict_proba()
       3. Return Prediction with request_id from request.state
     """
-    # TODO — Implement (cf. mini-cours 01_FastAPI_Pydantic_ml_essentiel.md)
-    raise NotImplementedError("Implement /predict endpoint")
+    if not hasattr(app.state, "model") or app.state.model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+
+    feature_order = [
+        "loan_amnt", "int_rate", "installment", "annual_inc", "dti", "delinq_2yrs", "fico_range_low", "revol_util",
+        "term", "grade", "emp_length", "home_ownership", "verification_status", "purpose",
+    ]
+
+    df = pd.DataFrame([application.model_dump()])[feature_order]
+    
+    try:
+        prediction = int(app.state.model.predict(df)[0])
+        probability = float(app.state.model.predict_proba(df)[0, 1])
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {exc}") from exc
+    return Prediction(
+        prediction=prediction, 
+        probability=probability, 
+        model_version=app.state.metadata["model_version"], 
+        request_id=request.state.request_id,
+    )
