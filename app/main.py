@@ -14,6 +14,10 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, status
 from loguru import logger
 
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
+from fastapi import Depends
+
 from app.middleware import LoggingMiddleware
 from app.schemas import HealthResponse, LoanApplication, Prediction
 
@@ -61,6 +65,8 @@ async def lifespan(app: FastAPI):
     app.state.model = None
     logger.info("Model released")
 
+bearer_scheme = HTTPBearer(auto_error=False)
+
 
 app = FastAPI(
     title="Pyrenex Risk API",
@@ -69,6 +75,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "https://pyrenex-credit.fr",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-Request-ID", "Authorization"],
+)
 
 
 # --- Routes -----------------------------------------------------------------
@@ -95,7 +112,7 @@ async def info() -> dict:
         "model_created_at": meta["created_at"],
         "sklearn_version": meta["sklearn_version"],
         "dataset_sha256": meta["dataset_sha256"],
-        "metrics_holdout": meta.get("metrics_holdout"),
+        "metrics_holdout": meta.get("metrics_test_internal"),
     }
 
 

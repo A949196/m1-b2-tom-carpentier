@@ -24,9 +24,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             status_code = response.status_code
         except Exception:
-            logger.bind(request_id=request_id).exception(
-                "Unhandled exception in request"
-            )
+            logger.bind(
+                request_id=request_id,
+                method=request.method,
+                path=request.url.path,
+            ).exception("Unhandled exception in request")
             raise
 
         latency_ms = round((time.perf_counter() - start) * 1000, 2)
@@ -36,14 +38,17 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             else "ERROR"
         )
 
-        logger.bind(request_id=request_id).log(
-            log_level,
-            "{method} {path} {status} {latency_ms}ms",
+        bound = logger.bind(
+            request_id=request_id,
             method=request.method,
             path=request.url.path,
             status=status_code,
             latency_ms=latency_ms,
         )
 
+        if request.url.path == "/predict" and hasattr(request.app.state, "metadata"):
+            bound = bound.bind(model_version=request.app.state.metadata.get("model_version"))
+        
+        bound.log(log_level, "{request.method} {request.url.path} {status_code} {latency_ms}ms")
         response.headers["X-Request-ID"] = request_id
         return response
