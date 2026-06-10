@@ -26,6 +26,14 @@ def valid_payload() -> dict:
         "term": "36 months",
         "int_rate": 12.5,
         "annual_inc": 60000,
+        "installment": 333.0,
+        "dti": 18.5,
+        "delinq_2yrs": 0,
+        "fico_range_low": 680,
+        "revol_util": 45.0,
+        "grade": "B",
+        "emp_length": "3 years",
+        "home_ownership": "RENT",
+        "verification_status": "Verified",
         "purpose": "debt_consolidation",
-        # TODO — Add the remaining fields
     }
