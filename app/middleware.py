@@ -49,6 +49,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/predict" and hasattr(request.app.state, "metadata"):
             bound = bound.bind(model_version=request.app.state.metadata.get("model_version"))
         
-        bound.log(log_level, "{request.method} {request.url.path} {status_code} {latency_ms}ms")
+        bound.log(log_level, "")
         response.headers["X-Request-ID"] = request_id
         return response
