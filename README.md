@@ -35,8 +35,8 @@ flowchart TD
             P["POST /predict\n→ prediction + probability"]
         end
         
-        Model["🤖 pyrenex_risk_v2.joblib\nRandomForest · scikit-learn 1.5.1"]
-        Logs["📄 logs/api.log\nJSON rotatif · 10 Mo · 7 jours"]
+        Model["pyrenex_risk_v2.joblib\nRandomForest · scikit-learn 1.5.1"]
+        Logs["logs/api.log\nJSON rotatif · 10 Mo · 7 jours"]
     end
 
     Client -->|HTTP Request| MW
